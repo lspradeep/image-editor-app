@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">TotalityApp</string>
+    <string name="take_selfie">Take Selfie</string>
+    <string name="choose_from_gallery">Choose From Gallery</string>
+
+</resources>
