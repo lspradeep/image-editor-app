@@ -2,6 +2,18 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_rotate"
+        android:icon="@drawable/ic_rotate"
+        android:title="@string/rotate"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_done"
+        android:icon="@drawable/ic_done"
+        android:title="@string/done"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_save"
         android:title="@string/save"
         app:showAsAction="never" />

@@ -1,15 +1,12 @@
 package com.totality.android.image_editor.tools
 
-import androidx.recyclerview.widget.RecyclerView
-import com.totality.android.image_editor.tools.ToolsViewHolder
-import com.totality.android.image_editor.tools.ToolModel
-import android.view.ViewGroup
 import android.view.LayoutInflater
+import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
+import androidx.recyclerview.widget.RecyclerView
 import com.totality.android.image_editor.R
 import com.totality.android.image_editor.databinding.RowEditingToolsBinding
-import com.totality.android.image_editor.tools.ToolType
-import java.util.ArrayList
+import java.util.*
 
 class EditingToolsAdapter(private val onItemSelected: OnItemSelected) :
     RecyclerView.Adapter<ToolsViewHolder>() {
@@ -19,6 +16,8 @@ class EditingToolsAdapter(private val onItemSelected: OnItemSelected) :
     init {
         mToolList.add(ToolModel("Shape", R.drawable.ic_oval, ToolType.SHAPE))
         mToolList.add(ToolModel("Text", R.drawable.ic_text, ToolType.TEXT))
+        mToolList.add(ToolModel("Crop", R.drawable.ic_crop, ToolType.CROP))
+        mToolList.add(ToolModel("Rotate", R.drawable.ic_rotate, ToolType.ROTATE))
         mToolList.add(ToolModel("Eraser", R.drawable.ic_eraser, ToolType.ERASER))
         mToolList.add(ToolModel("Filter", R.drawable.ic_photo_filter, ToolType.FILTER))
         mToolList.add(ToolModel("Emoji", R.drawable.ic_insert_emoticon, ToolType.EMOJI))

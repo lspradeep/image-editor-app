@@ -17,5 +17,7 @@
     <string name="msg_share_image">Share Image</string>
     <string name="save">Save</string>
     <string name="edit">Edit</string>
+    <string name="rotate">Rotate</string>
+    <string name="done">Done</string>
 
 </resources>

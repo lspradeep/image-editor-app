@@ -6,5 +6,5 @@ package com.totality.android.image_editor.tools
  * @since 5/23/2018
  */
 enum class ToolType {
-    SHAPE, TEXT, ERASER, FILTER, EMOJI, STICKER
+    SHAPE, TEXT, CROP, ROTATE, ERASER, FILTER, EMOJI, STICKER
 }

@@ -2,9 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.totality.android.image_editor">
 
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
     <application>
         <activity
-            android:name=".ImageEditorActivity"
+            android:name=".ImageEditDialogListenerActivity"
             android:exported="true" />
     </application>
 

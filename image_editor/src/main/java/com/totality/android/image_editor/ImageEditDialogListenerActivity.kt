@@ -1,32 +1,38 @@
 package com.totality.android.image_editor
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.theartofdev.edmodo.cropper.CropImageView
 import com.totality.android.image_editor.databinding.ActivityImageEditorBinding
 import com.totality.android.image_editor.shapetool.ShapeToolBottomSheetClickListener
 import com.totality.android.image_editor.shapetool.ShapeToolBottomSheetFragment
-import com.totality.android.image_editor.texttool.TextEditor
+import com.totality.android.image_editor.texttool.TextEditDialogListener
 import com.totality.android.image_editor.texttool.TextEditorDialogFragment
 import com.totality.android.image_editor.tools.EditingToolsAdapter
 import com.totality.android.image_editor.tools.OnItemSelected
 import com.totality.android.image_editor.tools.ToolType
 import com.totality.android.image_editor.util.ImageUtils
 import com.totality.android.image_editor.util.showErrorToast
+import ja.burhanrashid52.photoeditor.OnSaveBitmap
 import ja.burhanrashid52.photoeditor.PhotoEditor
 import ja.burhanrashid52.photoeditor.TextStyleBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeType
+import java.io.File
 
-class ImageEditorActivity : AppCompatActivity(), OnItemSelected, ShapeToolBottomSheetClickListener,
-    View.OnClickListener, TextEditor {
+class ImageEditDialogListenerActivity : AppCompatActivity(), OnItemSelected,
+    ShapeToolBottomSheetClickListener,
+    View.OnClickListener, TextEditDialogListener, CropImageView.OnCropImageCompleteListener {
 
     private lateinit var binding: ActivityImageEditorBinding
     private lateinit var photoEditor: PhotoEditor
@@ -34,6 +40,10 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected, ShapeToolBottom
     private var mShapeBuilder: ShapeBuilder? = null
     private val shapeToolBottomSheetFragment = ShapeToolBottomSheetFragment(this)
     private val textEditorDialogFragment = TextEditorDialogFragment()
+    private var outputFile: File? = null
+    private val loadingDialog by lazy {
+
+    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,6 +58,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected, ShapeToolBottom
     private fun setListeners() {
         binding.imgUndo.setOnClickListener(this)
         binding.imgRedo.setOnClickListener(this)
+        binding.cropImageView.setOnCropImageCompleteListener(this)
     }
 
     private fun setupToolsRecycler() {
@@ -55,7 +66,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected, ShapeToolBottom
             adapter = toolsAdapter
             layoutManager =
                 LinearLayoutManager(
-                    this@ImageEditorActivity,
+                    this@ImageEditDialogListenerActivity,
                     RecyclerView.HORIZONTAL,
                     false
                 )
@@ -74,7 +85,21 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected, ShapeToolBottom
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_edit_image, menu)
+        //for image cropper
+        menu?.findItem(R.id.action_rotate)?.isVisible = !binding.layoutEdit.isVisible
+        menu?.findItem(R.id.action_done)?.isVisible = !binding.layoutEdit.isVisible
+        //for downloading
+        menu?.findItem(R.id.action_save)?.isVisible = binding.layoutEdit.isVisible
         return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onBackPressed() {
+        if (!binding.layoutEdit.isVisible) {
+            togglePhotoEditorAndCrop()
+            invalidateOptionsMenu()
+            return
+        }
+        super.onBackPressed()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -86,6 +111,12 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected, ShapeToolBottom
                 val intent = Intent()
                 setResult(RESULT_OK, intent)
                 finish()
+            }
+            R.id.action_rotate -> {
+                binding.cropImageView.rotatedDegrees = 90
+            }
+            R.id.action_done -> {
+                binding.cropImageView.getCroppedImageAsync()
             }
         }
         return super.onOptionsItemSelected(item)
@@ -121,7 +152,10 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected, ShapeToolBottom
             }
             ToolType.TEXT -> {
                 textEditorDialogFragment.setOnTextEditorListener(this)
-                textEditorDialogFragment.show(supportFragmentManager,null)
+                textEditorDialogFragment.show(supportFragmentManager, null)
+            }
+            ToolType.CROP, ToolType.ROTATE -> {
+                getImageFromEditor()
             }
 //            ToolType.ERASER -> {
 //                photoEditor.brushEraser()
@@ -135,7 +169,29 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected, ShapeToolBottom
 //            ToolType.STICKER -> {
 //                showBottomSheetDialogFragment(mStickerBSFragment)
 //            }
+            else -> {
+
+            }
         }
+    }
+
+    private fun getImageFromEditor() {
+        photoEditor.saveAsBitmap(object : OnSaveBitmap {
+            override fun onBitmapReady(saveBitmap: Bitmap) {
+                togglePhotoEditorAndCrop()
+                invalidateOptionsMenu()
+                binding.cropImageView.setImageBitmap(saveBitmap)
+            }
+
+            override fun onFailure(e: Exception?) {
+                showErrorToast("Something went wrong")
+            }
+        })
+    }
+
+    fun togglePhotoEditorAndCrop() {
+        binding.layoutEdit.isVisible = !binding.layoutEdit.isVisible
+        binding.cropImageView.isVisible = !binding.cropImageView.isVisible
     }
 
     private fun showBottomSheetDialogFragment(fragment: BottomSheetDialogFragment?) {
@@ -161,16 +217,19 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected, ShapeToolBottom
         photoEditor.setShape(mShapeBuilder?.withShapeType(shapeType))
     }
 
-    override fun onDone(inputText: String?, colorCode: Int) {
+    override fun onTextEditingDone(inputText: String?, colorCode: Int) {
         val styleBuilder = TextStyleBuilder()
         styleBuilder.withTextColor(colorCode)
         photoEditor.addText(inputText, styleBuilder)
     }
 
+    override fun onCropImageComplete(view: CropImageView?, result: CropImageView.CropResult?) {
+        togglePhotoEditorAndCrop()
+        invalidateOptionsMenu()
+        binding.photoEditorView.source.setImageBitmap(result?.bitmap)
+    }
+
     companion object {
         const val ARGS_IMAGE_TO_EDIT = "IMAGE_TO_EDIT"
     }
-
-
-
 }

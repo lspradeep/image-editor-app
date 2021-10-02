@@ -25,7 +25,7 @@ class TextEditorDialogFragment : DialogFragment(), OnColorPickerClickListener {
     private lateinit var binding: FragmentTextToolDialogBinding
     private var mInputMethodManager: InputMethodManager? = null
     private var mColorCode = 0
-    private var mTextEditor: TextEditor? = null
+    private var mTextEditDialogListener: TextEditDialogListener? = null
 
     override fun onColorPickerClickListener(colorCode: Int) {
         mColorCode = colorCode
@@ -76,19 +76,19 @@ class TextEditorDialogFragment : DialogFragment(), OnColorPickerClickListener {
         mInputMethodManager?.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
 
         //Make a callback on activity when user is done with text editing
-        binding.addTextDoneTv.setOnClickListener { view ->
+        binding.addTextDoneTv.setOnClickListener { v ->
             mInputMethodManager?.hideSoftInputFromWindow(view.windowToken, 0)
             dismiss()
-            val inputText = binding.addTextEditText.getText().toString()
-            if (!TextUtils.isEmpty(inputText) && mTextEditor != null) {
-                mTextEditor!!.onDone(inputText, mColorCode)
+            val inputText = binding.addTextEditText.text.toString()
+            if (!TextUtils.isEmpty(inputText) && mTextEditDialogListener != null) {
+                mTextEditDialogListener?.onTextEditingDone(inputText, mColorCode)
             }
         }
     }
 
     //Callback to listener if user is done with text editing
-    fun setOnTextEditorListener(textEditor: TextEditor?) {
-        mTextEditor = textEditor
+    fun setOnTextEditorListener(textEditDialogListener: TextEditDialogListener?) {
+        mTextEditDialogListener = textEditDialogListener
     }
 
     companion object {
