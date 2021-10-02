@@ -1,5 +1,6 @@
 package com.totality.android.image_editor
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -15,6 +16,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.theartofdev.edmodo.cropper.CropImageView
 import com.totality.android.image_editor.databinding.ActivityImageEditorBinding
+import com.totality.android.image_editor.filter.FilterListener
+import com.totality.android.image_editor.filter.FilterViewAdapter
 import com.totality.android.image_editor.shapetool.ShapeToolBottomSheetClickListener
 import com.totality.android.image_editor.shapetool.ShapeToolBottomSheetFragment
 import com.totality.android.image_editor.texttool.TextEditDialogListener
@@ -25,6 +28,7 @@ import com.totality.android.image_editor.tools.ToolType
 import com.totality.android.image_editor.util.showErrorToast
 import ja.burhanrashid52.photoeditor.OnSaveBitmap
 import ja.burhanrashid52.photoeditor.PhotoEditor
+import ja.burhanrashid52.photoeditor.PhotoFilter
 import ja.burhanrashid52.photoeditor.TextStyleBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeType
@@ -32,7 +36,8 @@ import java.io.File
 
 class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     ShapeToolBottomSheetClickListener,
-    View.OnClickListener, TextEditDialogListener, CropImageView.OnCropImageCompleteListener {
+    View.OnClickListener, TextEditDialogListener, CropImageView.OnCropImageCompleteListener,
+    FilterListener {
 
     private lateinit var binding: ActivityImageEditorBinding
     private lateinit var photoEditor: PhotoEditor
@@ -40,6 +45,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     private var mShapeBuilder: ShapeBuilder? = null
     private val shapeToolBottomSheetFragment = ShapeToolBottomSheetFragment(this)
     private val textEditorDialogFragment = TextEditorDialogFragment()
+    private val mFilterViewAdapter = FilterViewAdapter(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,11 +54,21 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
         initView()
         setListeners()
         setupToolsRecycler()
+        setUpFiltersRecycler()
+    }
+
+    private fun setUpFiltersRecycler() {
+        binding.recyclerFilters.apply {
+            adapter = mFilterViewAdapter
+            layoutManager =
+                LinearLayoutManager(this@ImageEditorActivity, LinearLayoutManager.HORIZONTAL, false)
+        }
     }
 
     private fun setListeners() {
         binding.imgUndo.setOnClickListener(this)
         binding.imgRedo.setOnClickListener(this)
+        binding.imgCloseFilter.setOnClickListener(this)
         binding.cropImageView.setOnCropImageCompleteListener(this)
     }
 
@@ -89,9 +105,13 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     }
 
     override fun onBackPressed() {
-        if (!binding.layoutEdit.isVisible) {
+        if (binding.cropImageView.isVisible) {
             togglePhotoEditorAndCrop()
             invalidateOptionsMenu()
+            return
+        }
+        if (binding.recyclerFilters.isVisible) {
+            toggleFiltersLayout()
             return
         }
         super.onBackPressed()
@@ -120,17 +140,20 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
 
     override fun onClick(v: View?) {
         when (v?.id) {
-            R.id.imgUndo -> {
+            R.id.img_undo -> {
                 photoEditor.undo()
             }
-            R.id.imgRedo -> {
+            R.id.img_redo -> {
                 photoEditor.redo()
+            }
+            R.id.img_close_filter -> {
+                toggleFiltersLayout()
             }
         }
     }
 
     private fun getArgs() {
-        intent.extras?.getString(ARGS_IMAGE_TO_EDIT)?.let {path->
+        intent.extras?.getString(ARGS_IMAGE_TO_EDIT)?.let { path ->
             binding.photoEditorView.source.setImageURI(Uri.fromFile(File(path)))
         } ?: run {
             showErrorToast("Error loading image!")
@@ -155,9 +178,9 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
             ToolType.ERASER -> {
                 photoEditor.brushEraser()
             }
-//            ToolType.FILTER -> {
-//                showFilter(true)
-//            }
+            ToolType.FILTER -> {
+                toggleFiltersLayout()
+            }
 //            ToolType.EMOJI -> {
 //                showBottomSheetDialogFragment(mEmojiBSFragment)
 //            }
@@ -168,6 +191,12 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
 
             }
         }
+    }
+
+    private fun toggleFiltersLayout() {
+        binding.recyclerFilters.isVisible = !binding.recyclerFilters.isVisible
+        binding.imgCloseFilter.isVisible = !binding.imgCloseFilter.isVisible
+        binding.recyclerTools.isVisible = !binding.recyclerFilters.isVisible
     }
 
     private fun getImageFromEditor() {
@@ -222,6 +251,40 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
         togglePhotoEditorAndCrop()
         invalidateOptionsMenu()
         binding.photoEditorView.source.setImageBitmap(result?.bitmap)
+    }
+
+    override fun onFilterSelected(photoFilter: PhotoFilter) {
+        deleteCache(this)
+        photoEditor.setFilterEffect(photoFilter)
+    }
+
+    private fun deleteCache(context: Context) {
+        try {
+            val dir: File = context.cacheDir
+            deleteDir(dir)
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun deleteDir(dir: File?): Boolean {
+        return if (dir != null && dir.isDirectory) {
+            val children = dir.list()
+            for (i in children?.indices ?: 0..0) {
+                var success = false
+                children?.get(i)?.let {
+                    success = deleteDir(File(dir, it))
+                }
+                if (!success) {
+                    return false
+                }
+            }
+            dir.delete()
+        } else if (dir != null && dir.isFile) {
+            dir.delete()
+        } else {
+            false
+        }
     }
 
     companion object {
