@@ -1,7 +1,9 @@
 package com.totality.android.image_editor
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
@@ -9,6 +11,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.view.isVisible
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -25,7 +28,8 @@ import com.totality.android.image_editor.texttool.TextEditorDialogFragment
 import com.totality.android.image_editor.tools.EditingToolsAdapter
 import com.totality.android.image_editor.tools.OnItemSelected
 import com.totality.android.image_editor.tools.ToolType
-import com.totality.android.image_editor.util.showErrorToast
+import com.totality.android.image_editor.util.StorageUtil
+import com.totality.android.image_editor.util.showSimpleToast
 import ja.burhanrashid52.photoeditor.OnSaveBitmap
 import ja.burhanrashid52.photoeditor.PhotoEditor
 import ja.burhanrashid52.photoeditor.PhotoFilter
@@ -123,9 +127,33 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
                 onBackPressed()
             }
             R.id.action_save -> {
-                val intent = Intent()
-                setResult(RESULT_OK, intent)
-                finish()
+                if (ActivityCompat.checkSelfPermission(this,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return true
+                }
+                photoEditor.saveAsFile(StorageUtil.getFile(this).absolutePath,
+                    object : PhotoEditor.OnSaveListener {
+                        override fun onSuccess(imagePath: String) {
+                            showSimpleToast("Image saved successfully!")
+                            val intent = Intent()
+                            intent.putExtra(ARGS_SAVED_IMAGE_PATH, imagePath)
+                            setResult(RESULT_OK, intent)
+                            finish()
+                        }
+
+                        override fun onFailure(exception: java.lang.Exception) {
+                            showSimpleToast("Error saving image")
+                        }
+
+                    })
             }
             R.id.action_rotate -> {
                 binding.cropImageView.rotatedDegrees =
@@ -156,7 +184,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
         intent.extras?.getString(ARGS_IMAGE_TO_EDIT)?.let { path ->
             binding.photoEditorView.source.setImageURI(Uri.fromFile(File(path)))
         } ?: run {
-            showErrorToast("Error loading image!")
+            showSimpleToast("Error loading image!")
         }
     }
 
@@ -208,7 +236,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
             }
 
             override fun onFailure(e: Exception?) {
-                showErrorToast("Something went wrong")
+                showSimpleToast("Something went wrong")
             }
         })
     }
@@ -254,7 +282,6 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     }
 
     override fun onFilterSelected(photoFilter: PhotoFilter) {
-        deleteCache(this)
         photoEditor.setFilterEffect(photoFilter)
     }
 
@@ -289,5 +316,6 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
 
     companion object {
         const val ARGS_IMAGE_TO_EDIT = "IMAGE_TO_EDIT"
+        const val ARGS_SAVED_IMAGE_PATH = "SAVED_IMAGE_PATH"
     }
 }

@@ -4,9 +4,9 @@ import android.content.Context
 import java.io.File
 
 object StorageUtil {
-    private const val FILTERED_IMAGES = "filters"
+    private const val FILTERED_IMAGES = "/filters"
 
     fun getFile(context: Context): File {
-        return File(context.filesDir, FILTERED_IMAGES)
+        return File(context.getExternalFilesDir(FILTERED_IMAGES), FILTERED_IMAGES)
     }
 }

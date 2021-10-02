@@ -7,16 +7,19 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
+import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.totality.android.image_editor.ImageEditorActivity
 import com.totality.android.image_editor.ImageEditorActivity.Companion.ARGS_IMAGE_TO_EDIT
-import com.totality.android.image_editor.util.showErrorToast
+import com.totality.android.image_editor.ImageEditorActivity.Companion.ARGS_SAVED_IMAGE_PATH
+import com.totality.android.image_editor.util.showSimpleToast
 import com.totality.android.imageeditor.R
 import com.totality.android.imageeditor.databinding.ActivityMainBinding
 import pl.aprilapps.easyphotopicker.DefaultCallback
 import pl.aprilapps.easyphotopicker.EasyImage
 import pl.aprilapps.easyphotopicker.MediaFile
 import pl.aprilapps.easyphotopicker.MediaSource
+import java.io.File
 
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
@@ -70,27 +73,27 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 override fun onImagePickerError(error: Throwable, source: MediaSource) {
                     //Some error handling
                     println(error.printStackTrace())
-                    showErrorToast("Error loading image")
+                    showSimpleToast("Error loading image")
                 }
 
                 override fun onCanceled(source: MediaSource) {
                     //Not necessary to remove any files manually anymore
-                    showErrorToast("Cancelled")
+                    showSimpleToast("Cancelled")
                 }
             })
     }
 
     private fun onImageReturned(mediaFile: MediaFile) {
-//        Glide.with(this).load(mediaFile.file)
-//            .apply(requestOptions).into(binding.image)
         val intent = Intent(this, ImageEditorActivity::class.java)
         intent.putExtra(ARGS_IMAGE_TO_EDIT, mediaFile.file.absolutePath)
         intentEditImage.launch(intent)
     }
 
     private fun handleImageEditorActivityResult(result: ActivityResult?) {
-        result?.let { res ->
-
+        result?.data?.getStringExtra(ARGS_SAVED_IMAGE_PATH)?.let { path ->
+            showSimpleToast(path)
+            Glide.with(this).load(File(path))
+                .apply(requestOptions).into(binding.image)
         }
     }
 
