@@ -20,8 +20,8 @@ class EditingToolsAdapter(private val onItemSelected: OnItemSelected) :
         mToolList.add(ToolModel("Rotate", R.drawable.ic_rotate, ToolType.ROTATE))
         mToolList.add(ToolModel("Eraser", R.drawable.ic_eraser, ToolType.ERASER))
         mToolList.add(ToolModel("Filter", R.drawable.ic_photo_filter, ToolType.FILTER))
-        mToolList.add(ToolModel("Emoji", R.drawable.ic_insert_emoticon, ToolType.EMOJI))
-        mToolList.add(ToolModel("Sticker", R.drawable.ic_sticker, ToolType.STICKER))
+//        mToolList.add(ToolModel("Emoji", R.drawable.ic_insert_emoticon, ToolType.EMOJI))
+//        mToolList.add(ToolModel("Sticker", R.drawable.ic_sticker, ToolType.STICKER))
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ToolsViewHolder {

@@ -10,7 +10,6 @@ import androidx.databinding.DataBindingUtil
 import com.bumptech.glide.request.RequestOptions
 import com.totality.android.image_editor.ImageEditorActivity
 import com.totality.android.image_editor.ImageEditorActivity.Companion.ARGS_IMAGE_TO_EDIT
-import com.totality.android.image_editor.util.ImageUtils
 import com.totality.android.image_editor.util.showErrorToast
 import com.totality.android.imageeditor.R
 import com.totality.android.imageeditor.databinding.ActivityMainBinding
@@ -85,7 +84,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 //        Glide.with(this).load(mediaFile.file)
 //            .apply(requestOptions).into(binding.image)
         val intent = Intent(this, ImageEditorActivity::class.java)
-        intent.putExtra(ARGS_IMAGE_TO_EDIT, ImageUtils.convertImageToByteArray(mediaFile.file))
+        intent.putExtra(ARGS_IMAGE_TO_EDIT, mediaFile.file.absolutePath)
         intentEditImage.launch(intent)
     }
 

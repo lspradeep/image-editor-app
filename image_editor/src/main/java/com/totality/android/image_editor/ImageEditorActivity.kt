@@ -2,6 +2,7 @@ package com.totality.android.image_editor
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -21,13 +22,13 @@ import com.totality.android.image_editor.texttool.TextEditorDialogFragment
 import com.totality.android.image_editor.tools.EditingToolsAdapter
 import com.totality.android.image_editor.tools.OnItemSelected
 import com.totality.android.image_editor.tools.ToolType
-import com.totality.android.image_editor.util.ImageUtils
 import com.totality.android.image_editor.util.showErrorToast
 import ja.burhanrashid52.photoeditor.OnSaveBitmap
 import ja.burhanrashid52.photoeditor.PhotoEditor
 import ja.burhanrashid52.photoeditor.TextStyleBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeType
+import java.io.File
 
 class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     ShapeToolBottomSheetClickListener,
@@ -107,7 +108,8 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
                 finish()
             }
             R.id.action_rotate -> {
-                binding.cropImageView.rotatedDegrees = 90
+                binding.cropImageView.rotatedDegrees =
+                    if ((binding.cropImageView.rotatedDegrees + 90) > 360) 0 else (binding.cropImageView.rotatedDegrees + 90)
             }
             R.id.action_done -> {
                 binding.cropImageView.getCroppedImageAsync()
@@ -128,9 +130,8 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     }
 
     private fun getArgs() {
-        intent.extras?.getByteArray(ARGS_IMAGE_TO_EDIT)?.let {
-            val bitmap = ImageUtils.convertByteArrayToBitmap(it)
-            binding.photoEditorView.source.setImageBitmap(bitmap)
+        intent.extras?.getString(ARGS_IMAGE_TO_EDIT)?.let {path->
+            binding.photoEditorView.source.setImageURI(Uri.fromFile(File(path)))
         } ?: run {
             showErrorToast("Error loading image!")
         }
