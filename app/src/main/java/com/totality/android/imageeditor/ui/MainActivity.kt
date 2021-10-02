@@ -8,8 +8,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import com.bumptech.glide.request.RequestOptions
-import com.totality.android.image_editor.ImageEditDialogListenerActivity
-import com.totality.android.image_editor.ImageEditDialogListenerActivity.Companion.ARGS_IMAGE_TO_EDIT
+import com.totality.android.image_editor.ImageEditorActivity
+import com.totality.android.image_editor.ImageEditorActivity.Companion.ARGS_IMAGE_TO_EDIT
 import com.totality.android.image_editor.util.ImageUtils
 import com.totality.android.image_editor.util.showErrorToast
 import com.totality.android.imageeditor.R
@@ -84,9 +84,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private fun onImageReturned(mediaFile: MediaFile) {
 //        Glide.with(this).load(mediaFile.file)
 //            .apply(requestOptions).into(binding.image)
-        val bitmap = ImageUtils.convertImageToByteArray(mediaFile.file)
-        val intent = Intent(this, ImageEditDialogListenerActivity::class.java)
-        intent.putExtra(ARGS_IMAGE_TO_EDIT, bitmap)
+        val intent = Intent(this, ImageEditorActivity::class.java)
+        intent.putExtra(ARGS_IMAGE_TO_EDIT, ImageUtils.convertImageToByteArray(mediaFile.file))
         intentEditImage.launch(intent)
     }
 

@@ -7,7 +7,7 @@
 
     <application>
         <activity
-            android:name=".ImageEditDialogListenerActivity"
+            android:name=".ImageEditorActivity"
             android:exported="true" />
     </application>
 

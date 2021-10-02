@@ -28,9 +28,8 @@ import ja.burhanrashid52.photoeditor.PhotoEditor
 import ja.burhanrashid52.photoeditor.TextStyleBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeType
-import java.io.File
 
-class ImageEditDialogListenerActivity : AppCompatActivity(), OnItemSelected,
+class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     ShapeToolBottomSheetClickListener,
     View.OnClickListener, TextEditDialogListener, CropImageView.OnCropImageCompleteListener {
 
@@ -40,11 +39,6 @@ class ImageEditDialogListenerActivity : AppCompatActivity(), OnItemSelected,
     private var mShapeBuilder: ShapeBuilder? = null
     private val shapeToolBottomSheetFragment = ShapeToolBottomSheetFragment(this)
     private val textEditorDialogFragment = TextEditorDialogFragment()
-    private var outputFile: File? = null
-    private val loadingDialog by lazy {
-
-    }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,7 +60,7 @@ class ImageEditDialogListenerActivity : AppCompatActivity(), OnItemSelected,
             adapter = toolsAdapter
             layoutManager =
                 LinearLayoutManager(
-                    this@ImageEditDialogListenerActivity,
+                    this@ImageEditorActivity,
                     RecyclerView.HORIZONTAL,
                     false
                 )
@@ -157,9 +151,9 @@ class ImageEditDialogListenerActivity : AppCompatActivity(), OnItemSelected,
             ToolType.CROP, ToolType.ROTATE -> {
                 getImageFromEditor()
             }
-//            ToolType.ERASER -> {
-//                photoEditor.brushEraser()
-//            }
+            ToolType.ERASER -> {
+                photoEditor.brushEraser()
+            }
 //            ToolType.FILTER -> {
 //                showFilter(true)
 //            }
