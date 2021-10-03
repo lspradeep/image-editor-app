@@ -2,7 +2,6 @@ package com.totality.android.image_editor.util
 
 import android.content.ContentValues
 import android.content.Context
-import android.provider.MediaStore
 import android.provider.MediaStore.Images
 import java.io.File
 import java.io.FileOutputStream
@@ -13,7 +12,7 @@ object Downloader {
         val values = ContentValues()
         values.put(Images.Media.DATE_TAKEN, System.currentTimeMillis())
         values.put(Images.Media.MIME_TYPE, "image/jpeg")
-        values.put(MediaStore.MediaColumns.DATA, filePath)
+        values.put(Images.Media.DATA, filePath)
         context.contentResolver.insert(Images.Media.EXTERNAL_CONTENT_URI, values)
     }
 

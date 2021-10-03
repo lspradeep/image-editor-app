@@ -11,6 +11,7 @@ import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -75,7 +76,6 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     private fun setListeners() {
         binding.imgUndo.setOnClickListener(this)
         binding.imgRedo.setOnClickListener(this)
-        binding.imgCloseFilter.setOnClickListener(this)
         binding.cropImageView.setOnCropImageCompleteListener(this)
     }
 
@@ -104,10 +104,12 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_edit_image, menu)
         //for image cropper
-        menu?.findItem(R.id.action_rotate)?.isVisible = !binding.layoutEdit.isVisible
-        menu?.findItem(R.id.action_done)?.isVisible = !binding.layoutEdit.isVisible
+        menu?.findItem(R.id.action_rotate)?.isVisible = binding.cropImageView.isVisible
+        menu?.findItem(R.id.action_done)?.isVisible =
+            binding.cropImageView.isVisible || binding.recyclerFilters.isVisible
         //for downloading
-        menu?.findItem(R.id.action_save)?.isVisible = binding.layoutEdit.isVisible
+        menu?.findItem(R.id.action_save)?.isVisible =
+            binding.layoutEdit.isVisible && !binding.cropImageView.isVisible && !binding.recyclerFilters.isVisible
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -119,6 +121,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
         }
         if (binding.recyclerFilters.isVisible) {
             toggleFiltersLayout()
+            invalidateOptionsMenu()
             return
         }
         super.onBackPressed()
@@ -137,7 +140,12 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
                     if ((binding.cropImageView.rotatedDegrees + 90) > 360) 0 else (binding.cropImageView.rotatedDegrees + 90)
             }
             R.id.action_done -> {
-                binding.cropImageView.getCroppedImageAsync()
+                if (binding.cropImageView.isVisible) {
+                    binding.cropImageView.getCroppedImageAsync()
+                } else if (binding.recyclerFilters.isVisible) {
+                    toggleFiltersLayout()
+                    invalidateOptionsMenu()
+                }
             }
         }
         return super.onOptionsItemSelected(item)
@@ -185,9 +193,6 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
             R.id.img_redo -> {
                 photoEditor.redo()
             }
-            R.id.img_close_filter -> {
-                toggleFiltersLayout()
-            }
         }
     }
 
@@ -230,6 +235,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
             }
             ToolType.FILTER -> {
                 toggleFiltersLayout()
+                invalidateOptionsMenu()
             }
 //            ToolType.EMOJI -> {
 //                showBottomSheetDialogFragment(mEmojiBSFragment)
@@ -245,8 +251,10 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
 
     private fun toggleFiltersLayout() {
         binding.recyclerFilters.isVisible = !binding.recyclerFilters.isVisible
-        binding.imgCloseFilter.isVisible = !binding.imgCloseFilter.isVisible
-        binding.recyclerTools.isVisible = !binding.recyclerFilters.isVisible
+
+        binding.recyclerTools.isInvisible = !binding.recyclerTools.isInvisible
+        binding.recyclerTools.isEnabled = !binding.recyclerTools.isInvisible
+
     }
 
     private fun getImageFromEditor() {
