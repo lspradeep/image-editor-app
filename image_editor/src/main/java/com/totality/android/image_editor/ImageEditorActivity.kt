@@ -161,11 +161,17 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
             object : PhotoEditor.OnSaveListener {
                 override fun onSuccess(imagePath: String) {
                     showSimpleToast("Image saved successfully!")
-                    Downloader.addImageToGallery(imagePath, this@ImageEditorActivity)
-                    val intent = Intent()
-                    intent.putExtra(ARGS_SAVED_IMAGE_PATH, imagePath)
-                    setResult(RESULT_OK, intent)
-                    finish()
+                    Downloader.addImageToGallery(imagePath,
+                        this@ImageEditorActivity)?.let { uri ->
+                        val path = StorageUtil.getRealPathFromURI(this@ImageEditorActivity, uri)
+                        val intent = Intent()
+                        intent.putExtra(ARGS_SAVED_IMAGE_PATH, path)
+                        setResult(RESULT_OK, intent)
+                        finish()
+                        StorageUtil.deleteDir(File(imagePath))
+                    } ?: run {
+                        showSimpleToast("Error saving image")
+                    }
                 }
 
                 override fun onFailure(exception: java.lang.Exception) {
@@ -180,8 +186,10 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
             savePhoto()
         } else {
             // Do not have permissions, request them now
-            EasyPermissions.requestPermissions(this, "Write to storage",
-                100, *perms);
+            EasyPermissions.requestPermissions(this,
+                "To save photo, write to storage permission is required.",
+                100,
+                *perms);
         }
     }
 

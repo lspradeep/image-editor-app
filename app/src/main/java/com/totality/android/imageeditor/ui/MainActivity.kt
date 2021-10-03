@@ -1,6 +1,8 @@
 package com.totality.android.imageeditor.ui
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.activity.result.ActivityResult
@@ -19,6 +21,7 @@ import pl.aprilapps.easyphotopicker.DefaultCallback
 import pl.aprilapps.easyphotopicker.EasyImage
 import pl.aprilapps.easyphotopicker.MediaFile
 import pl.aprilapps.easyphotopicker.MediaSource
+import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
 
 
@@ -51,12 +54,36 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     override fun onClick(v: View?) {
         when (v?.id) {
             R.id.btn_gallery -> {
-                easyImage.openGallery(this)
+                requestPermission()
             }
             R.id.btn_selfie -> {
                 easyImage.openCameraForImage(this)
             }
         }
+    }
+
+    private val perms = arrayListOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+
+    private fun requestPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            perms.add(Manifest.permission.ACCESS_MEDIA_LOCATION)
+        }
+        if (EasyPermissions.hasPermissions(this, *perms.toTypedArray())) {
+            easyImage.openGallery(this)
+        } else {
+            // Do not have permissions, request them now
+            EasyPermissions.requestPermissions(this, "ACCESS_MEDIA_LOCATION",
+                100, *perms.toTypedArray());
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

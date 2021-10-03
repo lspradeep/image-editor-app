@@ -1,16 +1,31 @@
 package com.totality.android.image_editor.util
 
 import android.content.Context
+import android.net.Uri
 import android.os.Environment
+import android.provider.MediaStore
 import java.io.File
-import java.util.*
+
 
 object StorageUtil {
     fun getFile(context: Context): File {
-        val name = Calendar.getInstance().timeInMillis
         val path =
-            context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)?.absolutePath
-        return File("$path/${name}.jpeg")
+            context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)?.absolutePath
+        return File(path, "${System.currentTimeMillis()}.jpg")
+    }
+
+    fun getRealPathFromURI(context: Context, contentURI: Uri): String {
+        val result: String
+        val cursor = context.contentResolver.query(contentURI, null, null, null, null)
+        if (cursor == null) { // Source is Dropbox or other similar local file path
+            result = contentURI.path.toString()
+        } else {
+            cursor.moveToFirst()
+            val idx: Int = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
+            result = cursor.getString(idx)
+            cursor.close()
+        }
+        return result
     }
 
     fun deleteCache(context: Context) {
