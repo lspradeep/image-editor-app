@@ -94,6 +94,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             showSimpleToast(path)
             Glide.with(this).load(File(path))
                 .apply(requestOptions).into(binding.image)
+//            StorageUtil.deleteDir(File(path))
         }
     }
 

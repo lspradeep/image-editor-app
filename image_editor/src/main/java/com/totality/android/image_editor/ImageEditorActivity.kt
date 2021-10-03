@@ -1,7 +1,6 @@
 package com.totality.android.image_editor
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -28,6 +27,7 @@ import com.totality.android.image_editor.texttool.TextEditorDialogFragment
 import com.totality.android.image_editor.tools.EditingToolsAdapter
 import com.totality.android.image_editor.tools.OnItemSelected
 import com.totality.android.image_editor.tools.ToolType
+import com.totality.android.image_editor.util.Downloader
 import com.totality.android.image_editor.util.StorageUtil
 import com.totality.android.image_editor.util.showSimpleToast
 import ja.burhanrashid52.photoeditor.OnSaveBitmap
@@ -36,6 +36,7 @@ import ja.burhanrashid52.photoeditor.PhotoFilter
 import ja.burhanrashid52.photoeditor.TextStyleBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeType
+import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
 
 class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
@@ -50,6 +51,8 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     private val shapeToolBottomSheetFragment = ShapeToolBottomSheetFragment(this)
     private val textEditorDialogFragment = TextEditorDialogFragment()
     private val mFilterViewAdapter = FilterViewAdapter(this)
+    var perms = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,33 +130,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
                 onBackPressed()
             }
             R.id.action_save -> {
-                if (ActivityCompat.checkSelfPermission(this,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    return true
-                }
-                photoEditor.saveAsFile(StorageUtil.getFile(this).absolutePath,
-                    object : PhotoEditor.OnSaveListener {
-                        override fun onSuccess(imagePath: String) {
-                            showSimpleToast("Image saved successfully!")
-                            val intent = Intent()
-                            intent.putExtra(ARGS_SAVED_IMAGE_PATH, imagePath)
-                            setResult(RESULT_OK, intent)
-                            finish()
-                        }
-
-                        override fun onFailure(exception: java.lang.Exception) {
-                            showSimpleToast("Error saving image")
-                        }
-
-                    })
+                requestPermission()
             }
             R.id.action_rotate -> {
                 binding.cropImageView.rotatedDegrees =
@@ -164,6 +141,40 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun savePhoto() {
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        photoEditor.saveAsFile(StorageUtil.getFile(this).absolutePath,
+            object : PhotoEditor.OnSaveListener {
+                override fun onSuccess(imagePath: String) {
+                    showSimpleToast("Image saved successfully!")
+                    Downloader.addImageToGallery(imagePath, this@ImageEditorActivity)
+                    val intent = Intent()
+                    intent.putExtra(ARGS_SAVED_IMAGE_PATH, imagePath)
+                    setResult(RESULT_OK, intent)
+                    finish()
+                }
+
+                override fun onFailure(exception: java.lang.Exception) {
+                    showSimpleToast("Error saving image")
+                }
+
+            })
+    }
+
+    private fun requestPermission() {
+        if (EasyPermissions.hasPermissions(this, *perms)) {
+            savePhoto()
+        } else {
+            // Do not have permissions, request them now
+            EasyPermissions.requestPermissions(this, "Write to storage",
+                100, *perms);
+        }
     }
 
     override fun onClick(v: View?) {
@@ -187,6 +198,17 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
             showSimpleToast("Error loading image!")
         }
     }
+
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
+    }
+
 
     override fun onToolSelected(toolType: ToolType) {
         when (toolType) {
@@ -282,35 +304,10 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     }
 
     override fun onFilterSelected(photoFilter: PhotoFilter) {
-        photoEditor.setFilterEffect(photoFilter)
-    }
-
-    private fun deleteCache(context: Context) {
         try {
-            val dir: File = context.cacheDir
-            deleteDir(dir)
-        } catch (e: java.lang.Exception) {
-            e.printStackTrace()
-        }
-    }
+            photoEditor.setFilterEffect(photoFilter)
+        } catch (e: Exception) {
 
-    private fun deleteDir(dir: File?): Boolean {
-        return if (dir != null && dir.isDirectory) {
-            val children = dir.list()
-            for (i in children?.indices ?: 0..0) {
-                var success = false
-                children?.get(i)?.let {
-                    success = deleteDir(File(dir, it))
-                }
-                if (!success) {
-                    return false
-                }
-            }
-            dir.delete()
-        } else if (dir != null && dir.isFile) {
-            dir.delete()
-        } else {
-            false
         }
     }
 
