@@ -21,11 +21,11 @@ object Downloader {
 
         val values = ContentValues()
         values.put(Images.Media.DATE_TAKEN, System.currentTimeMillis())
-        values.put(Images.Media.MIME_TYPE, "image/png")
+        values.put(Images.Media.MIME_TYPE, "image/jpeg")
         return context.contentResolver.insert(imageCollection, values)?.also { uri->
             context.contentResolver.openOutputStream(uri).use { outputStream ->
                 if(!ImageUtils.convertByteArrayToBitmap(ImageUtils.convertImageToByteArray(File(filePath)))
-                        .compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
+                        .compress(Bitmap.CompressFormat.JPEG, 100, outputStream)) {
                     throw IOException("Couldn't save bitmap")
                 }
             }

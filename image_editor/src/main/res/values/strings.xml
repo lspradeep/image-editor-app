@@ -23,5 +23,6 @@
     <string name="error_saving_image">Error saving image</string>
     <string name="error_loading_image">Error loading image</string>
     <string name="something_went_wrong">Something went wrong</string>
+    <string name="permission_required_write_to_storage">To save image to gallery, Write to storage permission required</string>
 
 </resources>

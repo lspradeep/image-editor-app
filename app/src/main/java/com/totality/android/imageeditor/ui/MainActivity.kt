@@ -29,12 +29,14 @@ import pl.aprilapps.easyphotopicker.DefaultCallback
 import pl.aprilapps.easyphotopicker.EasyImage
 import pl.aprilapps.easyphotopicker.MediaFile
 import pl.aprilapps.easyphotopicker.MediaSource
+import pub.devrel.easypermissions.AfterPermissionGranted
+import pub.devrel.easypermissions.AppSettingsDialog
 import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
 import java.io.FileOutputStream
 
-
-class MainActivity : AppCompatActivity(), View.OnClickListener {
+class MainActivity : AppCompatActivity(), View.OnClickListener,
+    EasyPermissions.PermissionCallbacks {
     private val intentEditImage =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()
         ) {
@@ -88,7 +90,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     FileProvider.getUriForFile(this@MainActivity,
                         "$packageName.provider",
                         File(path)))
-                type = "image/png"
+                type = "image/jpeg"
             }
             startActivity(Intent.createChooser(shareIntent, getString(R.string.send_to)))
         }
@@ -103,28 +105,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     override fun onClick(v: View?) {
         when (v?.id) {
             R.id.btn_gallery -> {
-                requestPermission()
+                openGallery()
             }
             R.id.btn_selfie -> {
-                easyImage.openCameraForImage(this)
+                openCamera()
             }
         }
     }
 
-    private val perms = arrayListOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-
-    private fun requestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            perms.add(Manifest.permission.ACCESS_MEDIA_LOCATION)
-        }
-        if (EasyPermissions.hasPermissions(this, *perms.toTypedArray())) {
-            easyImage.openGallery(this)
-        } else {
-            // Do not have permissions, request them now
-            EasyPermissions.requestPermissions(this, "ACCESS_MEDIA_LOCATION",
-                100, *perms.toTypedArray());
-        }
-    }
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -134,6 +122,17 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
     }
+
+    override fun onPermissionsGranted(requestCode: Int, perms: MutableList<String>) {
+
+    }
+
+    override fun onPermissionsDenied(requestCode: Int, perms: MutableList<String>) {
+        if (EasyPermissions.somePermissionPermanentlyDenied(this, perms)) {
+            AppSettingsDialog.Builder(this).build().show()
+        }
+    }
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -213,5 +212,39 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     Color.MAGENTA).toIntArray())
                 .oneShot()
         }
+    }
+
+    private fun openGallery() {
+        val perms = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        if (EasyPermissions.hasPermissions(this, *perms)) {
+            easyImage.openGallery(this)
+        } else {
+            // Do not have permissions, request them now
+            EasyPermissions.requestPermissions(
+                this,
+                getString(R.string.permission_required_read_from_storage),
+                PERMISSION_REQ_CODE_CAMERA,
+                *perms
+            );
+        }
+    }
+
+    private fun openCamera() {
+        val perms = arrayOf(Manifest.permission.CAMERA)
+        if (EasyPermissions.hasPermissions(this, *perms)) {
+            easyImage.openCameraForImage(this)
+        } else {
+            EasyPermissions.requestPermissions(
+                this,
+                getString(R.string.permission_required_camera),
+                PERMISSION_REQ_CODE_READ_FROM_STORAGE,
+                *perms
+            )
+        }
+    }
+
+    companion object {
+        const val PERMISSION_REQ_CODE_CAMERA = 2021
+        const val PERMISSION_REQ_CODE_READ_FROM_STORAGE = 2022
     }
 }

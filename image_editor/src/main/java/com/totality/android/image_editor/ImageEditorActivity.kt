@@ -41,13 +41,14 @@ import ja.burhanrashid52.photoeditor.shape.ShapeType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import pub.devrel.easypermissions.AppSettingsDialog
 import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
 
 class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     ShapeToolBottomSheetClickListener,
     View.OnClickListener, TextEditDialogListener, CropImageView.OnCropImageCompleteListener,
-    FilterListener {
+    FilterListener, EasyPermissions.PermissionCallbacks {
 
     private lateinit var binding: ActivityImageEditorBinding
     private lateinit var photoEditor: PhotoEditor
@@ -136,7 +137,9 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
                 onBackPressed()
             }
             R.id.action_save -> {
-                requestPermission()
+                lifecycleScope.launch {
+                    savePhoto()
+                }
             }
             R.id.action_rotate -> {
                 binding.cropImageView.rotatedDegrees =
@@ -155,58 +158,56 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     }
 
     private suspend fun savePhoto() {
-        if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-        binding.progress.isVisible = true
-        invalidateOptionsMenu()
-        withContext(Dispatchers.IO) {
-            // by default file will be save in app specific storage, which cannot be accessed by other apps
-            photoEditor.saveAsFile(StorageUtil.getFile(this@ImageEditorActivity).absolutePath,
-                object : PhotoEditor.OnSaveListener {
-                    override fun onSuccess(imagePath: String) {
-                        showSimpleToast(getString(R.string.saved_successfully))
-                        // save it to public/shared storage
-                        Downloader.addImageToGallery(imagePath,
-                            this@ImageEditorActivity)?.let { uri ->
-                            val path = StorageUtil.getRealPathFromURI(this@ImageEditorActivity, uri)
-                            val intent = Intent()
-                            intent.putExtra(ARGS_SAVED_IMAGE_PATH, path)
-                            setResult(RESULT_OK, intent)
-                            // and delete the file from app specific storage
-                            StorageUtil.deleteDir(File(imagePath))
-                            binding.progress.isVisible = false
-                            finish()
-                        } ?: run {
-                            showSimpleToast(getString(R.string.error_saving_image))
-                            binding.progress.isVisible = false
-                            invalidateOptionsMenu()
-                        }
-                    }
-
-                    override fun onFailure(exception: java.lang.Exception) {
-                        showSimpleToast(getString(R.string.error_saving_image))
-                        binding.progress.isVisible = false
-                        invalidateOptionsMenu()
-                    }
-                })
-        }
-    }
-
-    private fun requestPermission() {
+        val perms = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         if (EasyPermissions.hasPermissions(this, *perms)) {
-            lifecycleScope.launch {
-                savePhoto()
+            binding.progress.isVisible = true
+            invalidateOptionsMenu()
+            withContext(Dispatchers.IO) {
+                // by default file will be save in app specific storage, which cannot be accessed by other apps
+                if (ActivityCompat.checkSelfPermission(this@ImageEditorActivity,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    photoEditor.saveAsFile(StorageUtil.getFile(this@ImageEditorActivity).absolutePath,
+                        object : PhotoEditor.OnSaveListener {
+                            override fun onSuccess(imagePath: String) {
+                                showSimpleToast(getString(R.string.saved_successfully))
+                                // save it to public/shared storage
+                                Downloader.addImageToGallery(imagePath,
+                                    this@ImageEditorActivity)?.let { uri ->
+                                    val path =
+                                        StorageUtil.getRealPathFromURI(this@ImageEditorActivity,
+                                            uri)
+                                    val intent = Intent()
+                                    intent.putExtra(ARGS_SAVED_IMAGE_PATH, path)
+                                    setResult(RESULT_OK, intent)
+                                    // and delete the file from app specific storage
+                                    StorageUtil.deleteDir(File(imagePath))
+                                    binding.progress.isVisible = false
+                                    finish()
+                                } ?: run {
+                                    showSimpleToast(getString(R.string.error_saving_image))
+                                    binding.progress.isVisible = false
+                                    invalidateOptionsMenu()
+                                }
+                            }
+
+                            override fun onFailure(exception: java.lang.Exception) {
+                                showSimpleToast(getString(R.string.error_saving_image))
+                                binding.progress.isVisible = false
+                                invalidateOptionsMenu()
+                            }
+                        })
+                }
             }
         } else {
-            // Do not have permissions, request them now
-            EasyPermissions.requestPermissions(this,
-                "To save photo, write to storage permission is required.",
-                100,
-                *perms);
+            EasyPermissions.requestPermissions(
+                this,
+                getString(R.string.permission_required_write_to_storage),
+                PERMISSION_REQ_CODE_WRITE_STORAGE,
+                *perms
+            )
         }
+
     }
 
     override fun onClick(v: View?) {
@@ -236,6 +237,16 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
+    }
+
+    override fun onPermissionsGranted(requestCode: Int, perms: MutableList<String>) {
+
+    }
+
+    override fun onPermissionsDenied(requestCode: Int, perms: MutableList<String>) {
+        if (EasyPermissions.somePermissionPermanentlyDenied(this, perms)) {
+            AppSettingsDialog.Builder(this).build().show()
+        }
     }
 
 
@@ -346,5 +357,6 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     companion object {
         const val ARGS_IMAGE_TO_EDIT = "IMAGE_TO_EDIT"
         const val ARGS_SAVED_IMAGE_PATH = "SAVED_IMAGE_PATH"
+        const val PERMISSION_REQ_CODE_WRITE_STORAGE = 21331
     }
 }

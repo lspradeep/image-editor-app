@@ -10,7 +10,7 @@ object ImageUtils {
     fun convertImageToByteArray(imageFile: File): ByteArray {
         val bmp = BitmapFactory.decodeFile(imageFile.path)
         val stream = ByteArrayOutputStream()
-        bmp.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        bmp.compress(Bitmap.CompressFormat.JPEG, 100, stream)
         return stream.toByteArray()
     }
 

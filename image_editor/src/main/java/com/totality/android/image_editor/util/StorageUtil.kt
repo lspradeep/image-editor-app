@@ -11,7 +11,7 @@ object StorageUtil {
     fun getFile(context: Context): File {
         val path =
             context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)?.absolutePath
-        return File(path, "edit${System.currentTimeMillis()}.png")
+        return File(path, "edit${System.currentTimeMillis()}.jpg")
     }
 
     fun getRealPathFromURI(context: Context, contentURI: Uri): String {
