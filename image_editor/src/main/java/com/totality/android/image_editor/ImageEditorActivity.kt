@@ -224,7 +224,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
         intent.extras?.getString(ARGS_IMAGE_TO_EDIT)?.let { path ->
             binding.photoEditorView.source.setImageURI(Uri.fromFile(File(path)))
         } ?: run {
-            showSimpleToast("Error loading image!")
+            showSimpleToast(getString(R.string.error_loading_image))
         }
     }
 
@@ -290,7 +290,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
             }
 
             override fun onFailure(e: Exception?) {
-                showSimpleToast("Something went wrong")
+                showSimpleToast(getString(R.string.something_went_wrong))
             }
         })
     }

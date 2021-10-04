@@ -2,7 +2,11 @@ package com.totality.android.imageeditor.ui
 
 import android.Manifest
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.os.Build
 import android.os.Bundle
 import android.view.Menu
@@ -17,7 +21,6 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.github.jinatonic.confetti.CommonConfetti
 import com.totality.android.image_editor.ImageEditorActivity
-import com.totality.android.image_editor.ImageEditorActivity.Companion.ARGS_IMAGE_TO_EDIT
 import com.totality.android.image_editor.ImageEditorActivity.Companion.ARGS_SAVED_IMAGE_PATH
 import com.totality.android.image_editor.util.showSimpleToast
 import com.totality.android.imageeditor.R
@@ -28,6 +31,7 @@ import pl.aprilapps.easyphotopicker.MediaFile
 import pl.aprilapps.easyphotopicker.MediaSource
 import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
+import java.io.FileOutputStream
 
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
@@ -139,7 +143,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             this,
             object : DefaultCallback() {
                 override fun onMediaFilesPicked(imageFiles: Array<MediaFile>, source: MediaSource) {
-                    onImageReturned(imageFiles[0])
+                    onImageReturned(imageFiles[0], source)
                 }
 
                 override fun onImagePickerError(error: Throwable, source: MediaSource) {
@@ -153,10 +157,46 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     //on image returned from camera or gallery
-    private fun onImageReturned(mediaFile: MediaFile) {
+    private fun onImageReturned(mediaFile: MediaFile, source: MediaSource) {
+        var imageFile = mediaFile.file
+        if (source == MediaSource.CAMERA_IMAGE) {
+            applyRotationIfNeeded(mediaFile.file)?.let { rotatedImage ->
+                imageFile = rotatedImage
+            }
+        }
         val intent = Intent(this, ImageEditorActivity::class.java)
-        intent.putExtra(ARGS_IMAGE_TO_EDIT, mediaFile.file.absolutePath)
+        intent.putExtra(ImageEditorActivity.ARGS_IMAGE_TO_EDIT, imageFile.absolutePath)
         intentEditImage.launch(intent)
+
+    }
+
+    private fun applyRotationIfNeeded(imageFile: File): File? {
+        val exif = ExifInterface(imageFile.absolutePath)
+        val rotation = when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_UNDEFINED)) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270
+            else -> 0
+        }
+        if (rotation == 0) return null
+        val bitmap = BitmapFactory.decodeFile(imageFile.absolutePath)
+        val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+        val rotatedBitmap =
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        bitmap.recycle()
+
+        lateinit var out: FileOutputStream
+        try {
+            out = FileOutputStream(imageFile)
+            rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
+        } catch (e: Exception) {
+
+        } finally {
+            rotatedBitmap.recycle()
+            out.close()
+        }
+        return imageFile
     }
 
     private fun handleImageEditorActivityResult(result: ActivityResult?) {

@@ -21,5 +21,7 @@
     <string name="done">Done</string>
     <string name="saved_successfully">Image saved successfully!</string>
     <string name="error_saving_image">Error saving image</string>
+    <string name="error_loading_image">Error loading image</string>
+    <string name="something_went_wrong">Something went wrong</string>
 
 </resources>
