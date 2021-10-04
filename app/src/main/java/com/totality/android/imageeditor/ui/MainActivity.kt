@@ -2,6 +2,7 @@ package com.totality.android.imageeditor.ui
 
 import android.Manifest
 import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.Menu
@@ -14,6 +15,7 @@ import androidx.core.content.FileProvider
 import androidx.databinding.DataBindingUtil
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
+import com.github.jinatonic.confetti.CommonConfetti
 import com.totality.android.image_editor.ImageEditorActivity
 import com.totality.android.image_editor.ImageEditorActivity.Companion.ARGS_IMAGE_TO_EDIT
 import com.totality.android.image_editor.ImageEditorActivity.Companion.ARGS_SAVED_IMAGE_PATH
@@ -78,7 +80,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         savedImagePath?.let { path ->
             val shareIntent: Intent = Intent().apply {
                 action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this@MainActivity, "$packageName.provider", File(path)))
+                putExtra(Intent.EXTRA_STREAM,
+                    FileProvider.getUriForFile(this@MainActivity,
+                        "$packageName.provider",
+                        File(path)))
                 type = "image/jpeg"
             }
             startActivity(Intent.createChooser(shareIntent, getString(R.string.send_to)))
@@ -163,7 +168,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             showSimpleToast(path)
             Glide.with(this).load(File(path))
                 .apply(requestOptions).into(binding.image)
-            shareImage()
+            CommonConfetti.rainingConfetti(binding.layoutRoot,
+                arrayOf(Color.RED,
+                    Color.BLUE,
+                    Color.GREEN,
+                    Color.YELLOW,
+                    Color.MAGENTA).toIntArray())
+                .oneShot()
         }
     }
 }
