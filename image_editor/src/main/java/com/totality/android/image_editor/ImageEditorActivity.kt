@@ -14,6 +14,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -37,6 +38,9 @@ import ja.burhanrashid52.photoeditor.PhotoFilter
 import ja.burhanrashid52.photoeditor.TextStyleBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeBuilder
 import ja.burhanrashid52.photoeditor.shape.ShapeType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import pub.devrel.easypermissions.EasyPermissions
 import java.io.File
 
@@ -52,8 +56,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
     private val shapeToolBottomSheetFragment = ShapeToolBottomSheetFragment(this)
     private val textEditorDialogFragment = TextEditorDialogFragment()
     private val mFilterViewAdapter = FilterViewAdapter(this)
-    var perms = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-
+    private var perms = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -109,7 +112,7 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
             binding.cropImageView.isVisible || binding.recyclerFilters.isVisible
         //for downloading
         menu?.findItem(R.id.action_save)?.isVisible =
-            binding.layoutEdit.isVisible && !binding.cropImageView.isVisible && !binding.recyclerFilters.isVisible
+            binding.layoutEdit.isVisible && !binding.cropImageView.isVisible && !binding.recyclerFilters.isVisible && !binding.progress.isVisible
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -151,39 +154,52 @@ class ImageEditorActivity : AppCompatActivity(), OnItemSelected,
         return super.onOptionsItemSelected(item)
     }
 
-    private fun savePhoto() {
+    private suspend fun savePhoto() {
         if (ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
         ) {
             return
         }
-        photoEditor.saveAsFile(StorageUtil.getFile(this).absolutePath,
-            object : PhotoEditor.OnSaveListener {
-                override fun onSuccess(imagePath: String) {
-                    showSimpleToast("Image saved successfully!")
-                    Downloader.addImageToGallery(imagePath,
-                        this@ImageEditorActivity)?.let { uri ->
-                        val path = StorageUtil.getRealPathFromURI(this@ImageEditorActivity, uri)
-                        val intent = Intent()
-                        intent.putExtra(ARGS_SAVED_IMAGE_PATH, path)
-                        setResult(RESULT_OK, intent)
-                        finish()
-                        StorageUtil.deleteDir(File(imagePath))
-                    } ?: run {
-                        showSimpleToast("Error saving image")
+        binding.progress.isVisible = true
+        invalidateOptionsMenu()
+        withContext(Dispatchers.IO) {
+            // by default file will be save in app specific storage, which cannot be accessed by other apps
+            photoEditor.saveAsFile(StorageUtil.getFile(this@ImageEditorActivity).absolutePath,
+                object : PhotoEditor.OnSaveListener {
+                    override fun onSuccess(imagePath: String) {
+                        showSimpleToast(getString(R.string.saved_successfully))
+                        // save it to public/shared storage
+                        Downloader.addImageToGallery(imagePath,
+                            this@ImageEditorActivity)?.let { uri ->
+                            val path = StorageUtil.getRealPathFromURI(this@ImageEditorActivity, uri)
+                            val intent = Intent()
+                            intent.putExtra(ARGS_SAVED_IMAGE_PATH, path)
+                            setResult(RESULT_OK, intent)
+                            // and delete the file from app specific storage
+                            StorageUtil.deleteDir(File(imagePath))
+                            binding.progress.isVisible = false
+                            finish()
+                        } ?: run {
+                            showSimpleToast(getString(R.string.error_saving_image))
+                            binding.progress.isVisible = false
+                            invalidateOptionsMenu()
+                        }
                     }
-                }
 
-                override fun onFailure(exception: java.lang.Exception) {
-                    showSimpleToast("Error saving image")
-                }
-
-            })
+                    override fun onFailure(exception: java.lang.Exception) {
+                        showSimpleToast(getString(R.string.error_saving_image))
+                        binding.progress.isVisible = false
+                        invalidateOptionsMenu()
+                    }
+                })
+        }
     }
 
     private fun requestPermission() {
         if (EasyPermissions.hasPermissions(this, *perms)) {
-            savePhoto()
+            lifecycleScope.launch {
+                savePhoto()
+            }
         } else {
             // Do not have permissions, request them now
             EasyPermissions.requestPermissions(this,

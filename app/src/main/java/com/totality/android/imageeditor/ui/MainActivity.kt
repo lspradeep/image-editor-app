@@ -143,14 +143,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 }
 
                 override fun onImagePickerError(error: Throwable, source: MediaSource) {
-                    //Some error handling
                     println(error.printStackTrace())
-                    showSimpleToast("Error loading image")
+                    showSimpleToast(getString(R.string.error_loading_image))
                 }
 
                 override fun onCanceled(source: MediaSource) {
-                    //Not necessary to remove any files manually anymore
-                    showSimpleToast("Cancelled")
                 }
             })
     }
