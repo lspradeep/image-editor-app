@@ -4,10 +4,13 @@ import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.databinding.DataBindingUtil
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -33,6 +36,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
 
     private lateinit var binding: ActivityMainBinding
+    private var savedImagePath: String? = null
+
     private val easyImage by lazy {
         EasyImage.Builder(this)
             .allowMultiple(false)
@@ -49,6 +54,41 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
         setListeners()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        invalidateOptionsMenu()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        menu?.findItem(R.id.action_share)?.isVisible = !savedImagePath.isNullOrBlank()
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.action_share) {
+            shareImage()
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun shareImage() {
+        savedImagePath?.let { path ->
+            val shareIntent: Intent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this@MainActivity, "$packageName.provider", File(path)))
+                type = "image/jpeg"
+            }
+            startActivity(Intent.createChooser(shareIntent, getString(R.string.send_to)))
+        }
+    }
+
+
+    private fun setListeners() {
+        binding.btnGallery.setOnClickListener(this)
+        binding.btnSelfie.setOnClickListener(this)
     }
 
     override fun onClick(v: View?) {
@@ -110,6 +150,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             })
     }
 
+    //on image returned from camera or gallery
     private fun onImageReturned(mediaFile: MediaFile) {
         val intent = Intent(this, ImageEditorActivity::class.java)
         intent.putExtra(ARGS_IMAGE_TO_EDIT, mediaFile.file.absolutePath)
@@ -118,15 +159,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private fun handleImageEditorActivityResult(result: ActivityResult?) {
         result?.data?.getStringExtra(ARGS_SAVED_IMAGE_PATH)?.let { path ->
+            savedImagePath = path
             showSimpleToast(path)
             Glide.with(this).load(File(path))
                 .apply(requestOptions).into(binding.image)
-//            StorageUtil.deleteDir(File(path))
+            shareImage()
         }
-    }
-
-    private fun setListeners() {
-        binding.btnGallery.setOnClickListener(this)
-        binding.btnSelfie.setOnClickListener(this)
     }
 }

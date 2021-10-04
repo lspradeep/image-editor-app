@@ -25,7 +25,7 @@ object Downloader {
         return context.contentResolver.insert(imageCollection, values)?.also { uri->
             context.contentResolver.openOutputStream(uri).use { outputStream ->
                 if(!ImageUtils.convertByteArrayToBitmap(ImageUtils.convertImageToByteArray(File(filePath)))
-                        .compress(Bitmap.CompressFormat.JPEG, 95, outputStream)) {
+                        .compress(Bitmap.CompressFormat.JPEG, 100, outputStream)) {
                     throw IOException("Couldn't save bitmap")
                 }
             }
