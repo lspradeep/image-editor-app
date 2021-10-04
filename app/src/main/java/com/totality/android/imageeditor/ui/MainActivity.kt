@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     FileProvider.getUriForFile(this@MainActivity,
                         "$packageName.provider",
                         File(path)))
-                type = "image/jpeg"
+                type = "image/png"
             }
             startActivity(Intent.createChooser(shareIntent, getString(R.string.send_to)))
         }
